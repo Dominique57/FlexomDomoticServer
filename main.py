@@ -2,24 +2,17 @@ import json
 import os
 from flask import request, Response, render_template, jsonify, Flask
 from pywebpush import webpush
-from dotenv import load_dotenv
+from flexomserver import app, FlexomServerConfig
 
 
-load_dotenv()
-
-
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
-
-
-vapid_dir = os.environ.get("VAPID_DIR")
+vapid_dir = FlexomServerConfig.VAPID_DIR
 with open(os.path.join(vapid_dir, "private_key.pem"), "r+") as f:
     vapid_private_key = f.readline().strip("\n")
 with open(os.path.join(vapid_dir, "public_key.pem"), "r+") as f:
     vapid_public_key = f.read().strip("\n")
 
 vapid_claims = {
-    "sub": os.environ.get("VAPID_CLAIM_EMAIL")
+    "sub": FlexomServerConfig.VAPID_CLAIM_EMAIL
 }
 
 
@@ -34,14 +27,22 @@ def send_web_push(subscription_information, message_body):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # sub = Subscriptions(
+    #     url="https://lol.fr",
+    #     token="lolMDRxd"
+    # )
+    # db.session.add(sub)
+    # db.session.commit()
+    # subs = db.session.execute(db.select(Subscriptions).order_by(Subscriptions.id)).scalars()
+    # subs = list(subs)
+    return f"Found 0 subscriptions !"
 
 
 @app.route("/subscription/", methods=["GET", "POST"])
 def subscription():
     """
         POST creates a subscription
-        GET returns vapid public key which clients uses to send around push notification
+        GET returns vapid public key which clients use to send around push notification
     """
     if request.method == "GET":
         return Response(
