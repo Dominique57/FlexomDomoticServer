@@ -4,6 +4,7 @@
 # Sensitive files
 res/vapid/private_key.pem
 res/vapid/public_key.pem
+res/sqlite/database.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
