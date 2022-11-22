@@ -1,5 +1,5 @@
 import json
-from flask import request, Response, jsonify
+from flask import request, Response, jsonify, render_template
 from . import app, vapid_public_key, send_web_push
 
 
@@ -13,7 +13,7 @@ def index():
     # db.session.commit()
     # subs = db.session.execute(db.select(Subscriptions).order_by(Subscriptions.id)).scalars()
     # subs = list(subs)
-    return "Hello World !"
+    return render_template("index.html")
 
 
 @app.route("/subscription/", methods=["GET", "POST"])
