@@ -21,7 +21,7 @@ with open(os.path.join(vapid_dir, "private_key.pem"), "r+") as f:
 with open(os.path.join(vapid_dir, "public_key.pem"), "r+") as f:
     vapid_public_key = f.read().strip("\n")
 vapid_claims = {
-    "sub": FlexomServerConfig.VAPID_CLAIM_EMAIL
+    "sub": f"mailto:{FlexomServerConfig.VAPID_CLAIM_EMAIL}",
 }
 
 
