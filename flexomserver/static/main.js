@@ -12,6 +12,7 @@ function urlB64ToUint8Array(base64String) {
         .replace(/\-/g, '+')
         .replace(/_/g, '/');
 
+    console.log("base64 data: `" + base64 + "` !")
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);
 
@@ -22,7 +23,9 @@ function urlB64ToUint8Array(base64String) {
 }
 
 function updateBtn() {
-    if (Notification.permission === 'denied') {
+    const notifPerm = Notification.permission;
+    console.log("Asking for notifications permissions result '" + notifPerm + "' !")
+    if (notifPerm === 'denied') {
         pushButton.textContent = 'Push Messaging Blocked.';
         pushButton.disabled = true;
         updateSubscriptionOnServer(null);
@@ -40,6 +43,17 @@ function updateBtn() {
 
 function updateSubscriptionOnServer(subscription) {
     // TODO: Send subscription to application server
+    fetch("subscription/", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(subscription),
+    }).then(() => {
+        console.log("pushing subscription succeeded !")
+    }).catch(() => {
+        console.log("pushing subscription failed !")
+    })
 
     const subscriptionJson = document.querySelector('.js-subscription-json');
     const subscriptionDetails =

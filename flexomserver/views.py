@@ -1,18 +1,11 @@
 import json
 from flask import request, Response, jsonify, render_template
-from . import app, vapid_public_key, send_web_push
+from . import app, db, vapid_public_key, send_web_push, Subscriptions
 
 
 @app.route('/')
 def index():
-    # sub = Subscriptions(
-    #     url="https://lol.fr",
-    #     token="lolMDRxd"
-    # )
-    # db.session.add(sub)
-    # db.session.commit()
-    # subs = db.session.execute(db.select(Subscriptions).order_by(Subscriptions.id)).scalars()
-    # subs = list(subs)
+    subs = list(Subscriptions.query.all())
     return render_template("index.html")
 
 
@@ -28,8 +21,22 @@ def subscription():
             headers={"Access-Control-Allow-Origin": "*"},
             content_type="application/json"
         )
-    subscription_token = request.get_json().get("subscription_token")
-    print(subscription_token)
+    browser_subscription = request.get_json()
+    endpoint = browser_subscription.get('endpoint')
+    expiration_time = browser_subscription.get('expirationTime')
+    keys_auth = browser_subscription.get('keys', {}).get('auth')
+    keys_p256dh = browser_subscription.get('keys', {}).get('p256dh')
+    if endpoint is None or keys_auth is None or keys_p256dh is None:
+        return Response("Given subscription is incomplete", 400)
+
+    sub = Subscriptions(
+        endpoint=endpoint,
+        expiration_time=expiration_time,
+        keys_auth=keys_auth,
+        keys_p256dh=keys_p256dh
+    )
+    db.session.add(sub)
+    db.session.commit()
     return Response(status=201, mimetype="application/json")
 
 
