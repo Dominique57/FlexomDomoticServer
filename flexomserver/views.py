@@ -1,60 +1,53 @@
 import json
-from flask import request, Response, jsonify, render_template
+from flask import request, Response, render_template
 from . import app, db, vapid_public_key, send_web_push, Subscriptions
 
 
 @app.route('/')
 def index():
     subs = list(Subscriptions.query.all())
+    for sub in subs:
+        print(sub)
+    return render_template("index.html")
+
+
+@app.route('/test', methods=["GET"])
+def test():
+    subs = list(Subscriptions.query.all())
+    message = "Push Test v1"
+    try:
+        for sub in subs:
+            res = send_web_push(sub.to_token(), message)
+            if not res.ok:
+                app.logger.info(
+                    f"WebPush req code ({res.status_code}): deleting non-ok endpoint: {sub}) !")
+                db.session.delete(sub)
+    finally:
+        db.session.commit()
     return render_template("index.html")
 
 
 @app.route("/subscription/", methods=["GET", "POST"])
 def subscription():
-    """
-        POST creates a subscription
-        GET returns vapid public key which clients use to send around push notification
-    """
+    # Return public VAPID key
     if request.method == "GET":
         return Response(
             response=json.dumps({"public_key": vapid_public_key}),
             headers={"Access-Control-Allow-Origin": "*"},
             content_type="application/json"
         )
-    browser_subscription = request.get_json()
-    endpoint = browser_subscription.get('endpoint')
-    expiration_time = browser_subscription.get('expirationTime')
-    keys_auth = browser_subscription.get('keys', {}).get('auth')
-    keys_p256dh = browser_subscription.get('keys', {}).get('p256dh')
-    if endpoint is None or keys_auth is None or keys_p256dh is None:
-        return Response("Given subscription is incomplete", 400)
 
-    sub = Subscriptions(
-        endpoint=endpoint,
-        expiration_time=expiration_time,
-        keys_auth=keys_auth,
-        keys_p256dh=keys_p256dh
-    )
-    db.session.add(sub)
-    db.session.commit()
+    # Build subscription instance from request
+    req_sub = Subscriptions.from_token(request.get_json())
+    if req_sub is None:
+        return Response("Given subscription is invalid !", 400)
+
+    # Create instance if not already existing in the database
+    sub = Subscriptions.query.filter_by(endpoint=req_sub.endpoint).one_or_none()
+    if not req_sub.is_same_token(sub):
+        sub = req_sub
+        db.session.add(sub)
+        db.session.commit()
+        app.logger.info(f"New notification token: {sub} !")
+
     return Response(status=201, mimetype="application/json")
-
-
-@app.route("/push_v1/", methods=['POST'])
-def push_v1():
-    message = "Push Test v1"
-    print("is_json", request.is_json)
-
-    if not request.json or not request.json.get('sub_token'):
-        return jsonify({'failed': 1})
-
-    print("request.json", request.json)
-
-    token = request.json.get('sub_token')
-    try:
-        token = json.loads(token)
-        send_web_push(token, message)
-        return jsonify({'success': 1})
-    except Exception as e:
-        print("error", e)
-        return jsonify({'failed': str(e)})

@@ -2,6 +2,7 @@ from .config import FlexomServerConfig
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+import requests
 from pywebpush import webpush
 
 db = SQLAlchemy()
@@ -25,7 +26,7 @@ vapid_claims = {
 }
 
 
-def send_web_push(subscription_information, message_body):
+def send_web_push(subscription_information, message_body) -> requests.Response:
     return webpush(
         subscription_info=subscription_information,
         data=message_body,
