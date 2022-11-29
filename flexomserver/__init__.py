@@ -1,15 +1,33 @@
 from .config import FlexomServerConfig
 import os
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 import requests
 from pywebpush import webpush
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from flask_apscheduler import APScheduler
+
+
+class Config:
+    SECRET_KEY = FlexomServerConfig.SECRET_KEY
+
+    SQLALCHEMY_DATABASE_URI = f"sqlite:///{FlexomServerConfig.SQLITE_PATH}"
+
+    SCHEDULER_JOBSTORES = {"default": SQLAlchemyJobStore(url=SQLALCHEMY_DATABASE_URI)}
+    SCHEDULER_EXECUTORS = {"default": {"type": "threadpool", "max_workers": 1}}
+    SCHEDULER_JOB_DEFAULTS = {"coalesce": False, "max_instances": 1}
+    SCHEDULER_API_ENABLED = True
+
 
 db = SQLAlchemy()
+scheduler = APScheduler()
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = FlexomServerConfig.SECRET_KEY
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{FlexomServerConfig.SQLITE_PATH}"
+app.config.from_object(Config())
+
 db.init_app(app)
+scheduler.init_app(app)
+scheduler.start()
 
 from .models import *
 with app.app_context():
